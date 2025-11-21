@@ -1,0 +1,15 @@
+arch: vit_l
+checkpoint_path: null
+patch_size: 16
+precision: bf16
+layers_to_hook: [23]
+#[5, 11, 17, 23]
+primary_layer: 23
+output_dir_name: sam_new_single_23
+head:
+  type: multi_layer_linear
+  feature_keys: [23]
+  primary_key: 23
+  fuse_mode: concat
+  use_batchnorm: true
+  dropout: 0.0

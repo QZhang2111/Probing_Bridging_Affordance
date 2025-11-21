@@ -1,0 +1,14 @@
+dataset:
+  geometry:
+    use_depth: true
+    use_normal: false
+
+model:
+  params:
+    layers_to_hook: [up_3]
+    primary_layer: up_3
+    head:
+      feature_keys: [up_3]
+      primary_key: up_3
+    output_dir_name: sd/up3_depth
+

@@ -1,0 +1,11 @@
+dataset:
+  root: /home/li325/qing_workspace/dataset/UMD/part-affordance-dataset
+  patch_size: 16
+
+model:
+  target: dino
+  config_path: configs/models/dino.yaml
+  overrides: {}
+
+training:
+  num_workers: 0

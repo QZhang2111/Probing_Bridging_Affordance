@@ -1,0 +1,6 @@
+dataset:
+  root: /home/li325/qing_workspace/dataset/UMD/part-affordance-dataset
+
+model:
+  overrides:
+    checkpoint_path: /home/li325/qing_workspace/model_for_test/dinov3_vit7b16_pretrain_lvd1689m.pth

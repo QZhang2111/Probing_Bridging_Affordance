@@ -1,0 +1,13 @@
+dataset:
+  geometry:
+    use_depth: false
+    use_normal: true
+
+model:
+  params:
+    layers_to_hook: [11]
+    head:
+      feature_keys: [11]
+      primary_key: 11
+    output_dir_name: sam/11_normal
+

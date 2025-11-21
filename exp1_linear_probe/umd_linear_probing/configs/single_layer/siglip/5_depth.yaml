@@ -1,0 +1,14 @@
+dataset:
+  geometry:
+    use_depth: true
+    use_normal: false
+
+model:
+  params:
+    layers_to_hook: [5]
+   
+    head:
+      feature_keys: [5]
+      primary_key: 5
+    output_dir_name: siglip/5_depth
+

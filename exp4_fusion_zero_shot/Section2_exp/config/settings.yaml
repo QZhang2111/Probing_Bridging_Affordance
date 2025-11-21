@@ -1,0 +1,186 @@
+paths:
+  output_root: ../cache
+general:
+  device: cuda
+  use_mask: true
+  mask_path: ../data/knife_mask.png
+  #knife(212, 221)
+  #mug(262, 198)
+  #ew_mug(353,420)
+  #knife(63,79)
+  anchor_pixel:
+  - 63
+  - 79
+  images:
+    knife: ../data/knife.jpg
+    kitchen: ../data/kitchen_fig3.jpg
+    office: ../data/table_knife.jpeg
+  overlay:
+    cmap: viridis
+    alpha: 0.6
+    low_pct: 1.0
+    high_pct: 99.0
+models:
+- key: dinov3_vit7b16
+  type: dinov3
+  repo: ../../dino/third_party/dinov3
+  checkpoint: /home/li325/qing_workspace/model_for_test/dinov3_vit7b16_pretrain_lvd1689m.pth
+  target_size:
+  - 1280
+  - 960
+  patch_size: 16
+  keep_full_resolution: true
+  layer_variants:
+  - suffix: "_layer10"
+    layers_to_hook:
+    - 9
+  - suffix: "_layer20"
+    layers_to_hook:
+    - 19
+  - suffix: "_layer30"
+    layers_to_hook:
+    - 29
+  - suffix: "_layer40"
+    layers_to_hook:
+    - 39
+- key: dino_vitb16
+  type: dino
+  repo: ../../../../export/dino
+  checkpoint: /home/li325/qing_workspace/model_for_test/dino_vitbase16_pretrain.pth
+  target_size:
+  - 1280
+  - 960
+  patch_size: 16
+  layer_variants:
+  - suffix: "_layer3"
+    layers_to_hook:
+    - 2
+  - suffix: "_layer6"
+    layers_to_hook:
+    - 5
+  - suffix: "_layer9"
+    layers_to_hook:
+    - 8
+  - suffix: "_layer12"
+    layers_to_hook:
+    - 11
+- key: dinov2_vitb14
+  type: dinov2
+  repo: ../../../../export/dinov2
+  checkpoint: /home/li325/qing_workspace/model_for_test/dinov2_vitb14_pretrain.pth
+  target_size:
+  - 1260
+  - 882
+  patch_size: 14
+  layer_variants:
+  - suffix: "_layer3"
+    layers_to_hook:
+    - 2
+  - suffix: "_layer6"
+    layers_to_hook:
+    - 5
+  - suffix: "_layer9"
+    layers_to_hook:
+    - 8
+  - suffix: "_layer12"
+    layers_to_hook:
+    - 11
+- key: sam_vitb
+  type: sam
+  checkpoint: /home/li325/qing_workspace/exps/affordance-experiments/umd_linear_probing/src/models/checkpoint_weights/sam_vit_b_01ec64.pth
+  target_size:
+  - 1024
+  - 1024
+  patch_size: 16
+  layer_variants:
+  - suffix: "_layer3"
+    layers_to_hook:
+    - 2
+  - suffix: "_layer6"
+    layers_to_hook:
+    - 5
+  - suffix: "_layer9"
+    layers_to_hook:
+    - 8
+  - suffix: "_layer12"
+    layers_to_hook:
+    - 11
+- key: clip_vitb16_laion
+  type: clip
+  model_id: hf-hub:laion/CLIP-ViT-B-16-laion2B-s34B-b88K
+  target_size:
+  - 224
+  - 224
+  patch_size: 16
+  normalization:
+    mean:
+    - 0.48145466
+    - 0.4578275
+    - 0.40821073
+    std:
+    - 0.26862954
+    - 0.26130258
+    - 0.27577711
+  layer_variants:
+  - suffix: "_layer3"
+    layers_to_hook:
+    - 2
+  - suffix: "_layer6"
+    layers_to_hook:
+    - 5
+  - suffix: "_layer9"
+    layers_to_hook:
+    - 8
+  - suffix: "_layer12"
+    layers_to_hook:
+    - 11
+- key: siglip_base_p16_384
+  type: siglip
+  model_id: google/siglip-base-patch16-384
+  target_size:
+  - 384
+  - 384
+  patch_size: 16
+  normalization:
+    mean:
+    - 0.5
+    - 0.5
+    - 0.5
+    std:
+    - 0.5
+    - 0.5
+    - 0.5
+  layer_variants:
+  - suffix: "_layer3"
+    layers_to_hook:
+    - 2
+  - suffix: "_layer6"
+    layers_to_hook:
+    - 5
+  - suffix: "_layer9"
+    layers_to_hook:
+    - 8
+  - suffix: "_layer12"
+    layers_to_hook:
+    - 11
+- key: sd21
+  type: stable_diffusion
+  model_id: stabilityai/stable-diffusion-2-1
+  target_size:
+  - 1280
+  - 960
+  patch_size: 16
+
+  primary_layer: up_0
+  prompt: ""
+  time_step: 250
+  layer_variants:
+  - suffix: "_up1"
+    primary_layer: up_1
+  - suffix: "_up2"
+    primary_layer: up_2
+  - suffix: "_up3"
+    primary_layer: up_3
+  #primary_layer: up_1
+  prompt: ""
+  time_step: 1

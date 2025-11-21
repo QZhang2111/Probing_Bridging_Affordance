@@ -1,0 +1,14 @@
+name: dinov3_vit7b16
+repo_path: ../dino/third_party/dinov3
+checkpoint_path: ../../model_for_test/dinov3_vit7b16_pretrain_lvd1689m.pth
+layers_to_hook: [29]
+#[9, 19, 29, 39]
+primary_layer: 29
+output_dir_name: dinov3_lay29
+head:
+  type: multi_layer_linear
+  feature_keys: [29]
+  primary_key: 29
+  fuse_mode: concat
+  use_batchnorm: true
+  dropout: 0.0

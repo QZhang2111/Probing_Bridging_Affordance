@@ -1,0 +1,15 @@
+name: dinov2_vitl14
+repo_path: /home/li325/qing_workspace/export/dinov2
+checkpoint_path: /home/li325/qing_workspace/model_for_test/dinov2_vitl14_pretrain.pth
+layers_to_hook: [6, 11, 17,23]
+#[6, 11, 17,23]
+patch_size: 14
+primary_layer: 6
+output_dir_name: dinov2_l_multi
+head:
+  type: multi_layer_linear
+  feature_keys: [6, 11, 17,23]
+  primary_key: 6
+  fuse_mode: concat
+  use_batchnorm: true
+  dropout: 0.0

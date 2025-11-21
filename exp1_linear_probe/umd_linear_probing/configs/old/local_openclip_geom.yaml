@@ -1,0 +1,30 @@
+dataset:
+  # Keep other dataset settings from default.yaml. Only override root + geometry.
+  root: /home/li325/qing_workspace/dataset/UMD/part-affordance-dataset
+  geometry:
+    # Manifest produced by Metric3D predictor script
+    manifest_path: /home/li325/qing_workspace/exps/affordance-experiments/umd_linear_probing/metadata/splits/metric3d_train_predictions.json
+    # By default, do NOT use geometry (toggle these to true to enable)
+    use_depth: false
+    use_normal: true
+    # Depth normalization (per-image robust scaling), used only when use_depth=true
+    normalization:
+      mode: per_image_percentile
+      depth:
+        percentiles: {low: 2.0, high: 98.0}
+    # Pooling to the patch grid (patch_size=16 -> 30x40 for 480x640)
+    pool: {kernel: 16, stride: 16}
+
+model:
+  target: open_clip
+  # Use ViT-B/16 template; other params (layers_to_hook, primary_layer, head, etc.)
+  # come from this template unless overridden below.
+  config_path: configs/models/openclip_vitb16.yaml
+  overrides:
+    # Default head uses only RGB feature at layer 11. To enable geometry fusion,
+    # change feature_keys to [11, 'geom_depth'] or [11, 'geom_normal'] or both.
+   
+
+
+# Training section will be inherited from default.yaml (batch size, epochs, etc.).
+# Omit overrides here to keep defaults intact.

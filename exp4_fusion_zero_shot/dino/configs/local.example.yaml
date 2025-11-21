@@ -1,0 +1,9 @@
+# Copy this file to configs/local.yaml and edit as needed to point to local
+# Copy this file to configs/local.yaml and edit as needed to point to local
+# resources that live outside the repository.
+model:
+  checkpoint_path: /absolute/path/to/dinov3_vit7b16_pretrain_lvd1689m.pth
+paths:
+  # Uncomment to override dataset locations, e.g. when mounting elsewhere.
+  # data_root: /mnt/datasets/affordance/dino/data
+  # umd_label_root: /mnt/datasets/UMD/part-affordance-dataset/tools

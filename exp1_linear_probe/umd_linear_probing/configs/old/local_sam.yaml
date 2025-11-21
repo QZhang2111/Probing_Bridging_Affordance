@@ -1,0 +1,7 @@
+dataset:
+  root: /home/li325/qing_workspace/dataset/UMD/part-affordance-dataset
+
+model:
+  target: sam
+  config_path: configs/models/sam.yaml
+  overrides: {}

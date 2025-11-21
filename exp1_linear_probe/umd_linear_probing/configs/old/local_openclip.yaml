@@ -1,0 +1,10 @@
+dataset:
+  root: /home/li325/qing_workspace/dataset/UMD/part-affordance-dataset
+
+model:
+  target: open_clip
+  config_path: configs/models/openclip_vitb16_geom.yaml
+  overrides: {}
+
+training:
+  precision: fp32

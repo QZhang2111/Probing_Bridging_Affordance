@@ -1,0 +1,15 @@
+dataset:
+  geometry:
+    # Enable both geometry channels when evaluating layer 2
+    use_depth: true
+    use_normal: true
+
+model:
+  params:
+    # Layers to extract from OpenCLIP ViT-B/16
+    layers_to_hook: [2]
+    primary_layer: 2
+    head:
+      feature_keys: [2]
+      primary_key: 2
+    output_dir_name: clip/2_both
