@@ -207,6 +207,11 @@ class LinearProbeExperiment:
             self.transform = get_default_image_transform()
             flux_params = dict(self.model_params)
             flux_params.setdefault("device", str(self.device))
+            if "FluxBackbone" not in globals() or FluxBackbone is None:
+                raise RuntimeError(
+                    "FluxBackbone is unavailable in this environment. "
+                    "Install compatible transformers/flash-attn/torch, or remove Flux configs."
+                )
             self.backbone = FluxBackbone(**flux_params)
             self.target_layer = self.model_params.get("primary_layer", self.backbone.primary_layer)
             self.patch_size = self.model_params.get("patch_size", 16)
@@ -236,6 +241,11 @@ class LinearProbeExperiment:
             siglip_params = dict(self.model_params)
             siglip_params.setdefault("device", str(self.device))
             patch_size = siglip_params.pop("patch_size", 16)
+            if "SigLIP2Backbone" not in globals() or SigLIP2Backbone is None:
+                raise RuntimeError(
+                    "SigLIP2Backbone is unavailable in this environment. "
+                    "Install compatible transformers/flash-attn/torch, or remove SigLIP2 configs."
+                )
             self.backbone = SigLIP2Backbone(**siglip_params)
             self.target_layer = self.backbone.default_layer
             self.patch_size = patch_size

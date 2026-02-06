@@ -1,7 +1,0 @@
-dataset:
-  root: /home/li325/qing_workspace/dataset/UMD/part-affordance-dataset
-
-model:
-  target: flux
-  config_path: configs/models/flux.yaml
-  overrides: {}

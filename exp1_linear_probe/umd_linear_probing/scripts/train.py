@@ -29,13 +29,13 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--defaults",
         type=Path,
-        default=PROJECT_ROOT / "configs" / "default.yaml",
+        default=None,
         help="[Deprecated] Base config file to be merged with --local.",
     )
     parser.add_argument(
         "--local",
         type=Path,
-        default=PROJECT_ROOT / "configs" / "local.yaml",
+        default=None,
         help="[Optional] Local override config, merged into --defaults.",
     )
     return parser.parse_args()
@@ -47,8 +47,7 @@ def main() -> None:
         # Single-file configuration mode
         config = load_config(args.config, None)
     else:
-        local_path = args.local if args.local.exists() else None
-        config = load_config(args.defaults, local_path)
+        raise FileNotFoundError("Please provide --config pointing to a valid YAML file.")
     experiment = LinearProbeExperiment(config)
     experiment.train()
 

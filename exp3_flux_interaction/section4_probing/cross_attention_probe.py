@@ -1,16 +1,14 @@
 #!/usr/bin/env python3
 """
-Cross-attention visualiser for Flux/Stable Diffusion img2img pipelines.
+Flux Kontext cross-attention extractor.
 
-Given an RGB image and a prompt, the script
-  1. encodes the image into latents,
-  2. runs the requested diffusion pipeline with the provided prompt,
-  3. records the true cross-attention probabilities between image queries
-     and the selected text tokens, and
-  4. exports Viridis heatmaps / overlays per token.
+Inputs:
+  - a single RGB image
+  - a text prompt
+  - a single affordance label
 
-Only code under section4_probing/ is touched; the rest of the repo remains
-untouched.
+Output:
+  - cross-attention heatmap for the affordance label (png + npy)
 """
 
 from __future__ import annotations
@@ -19,45 +17,38 @@ import argparse
 import json
 import math
 from pathlib import Path
-from typing import Dict, Iterable, List, Optional, Sequence
+from typing import Dict, List
 
 import numpy as np
 from PIL import Image
 
-# Deferred heavy imports (torch/diffusers) happen inside `main`.
-
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--backend", choices=("sd", "flux"), required=True, help="Choose Stable Diffusion or Flux backend.")
-    parser.add_argument("--model-id", type=str, required=True, help="HF repo id or local path to the pipeline weights.")
+    parser.add_argument("--model-id", type=str, required=True, help="HF repo id or local path to Flux Kontext weights.")
     parser.add_argument("--image", type=Path, required=True, help="Path to the reference RGB image.")
-    parser.add_argument("--prompt", type=str, required=True, help="Text prompt whose tokens will be probed.")
-    parser.add_argument("--negative-prompt", type=str, default=None, help="Optional negative prompt.")
-    parser.add_argument("--tokens", nargs="*", default=None, help="Whitespace-separated list of token strings to track (defaults to every token).")
+    parser.add_argument("--prompt", type=str, required=True, help="Text prompt containing the affordance label.")
+    parser.add_argument("--affordance", type=str, required=True, help="Affordance label to extract cross-attention for.")
     parser.add_argument("--output-root", type=Path, default=Path("probe_outputs"), help="Root directory for results.")
     parser.add_argument("--steps", type=int, default=20, help="Number of denoising steps.")
-    parser.add_argument("--guidance", type=float, default=2.5, help="Classifier-free guidance scale.")
-    parser.add_argument("--strength", type=float, default=0.7, help="Img2Img strength (only SD uses it; Flux ignores).")
+    parser.add_argument("--guidance", type=float, default=3.0, help="Classifier-free guidance scale.")
     parser.add_argument("--seed", type=int, default=0, help="Random seed.")
     parser.add_argument("--device", type=str, default="cuda", help="Device for inference.")
     return parser.parse_args()
 
 
 class AttentionAccumulator:
-    """Collects per-token attention maps and handles visualisation."""
-
     def __init__(self, token_map: Dict[str, int]):
         self.token_map = token_map
         self.storage: Dict[str, List[np.ndarray]] = {name: [] for name in token_map}
 
-    def _infer_hw(self, length: int) -> Optional[int]:
+    def _infer_hw(self, length: int) -> int | None:
         side = int(round(math.sqrt(length)))
         if side * side == length:
             return side
         return None
 
-    def add_from_probs(self, probs, token_dim: int, layer_tag: str):
+    def add_from_probs(self, probs, token_dim: int):
         """
         Args:
             probs: torch.Tensor (B, H, N_query, N_key)
@@ -88,7 +79,6 @@ class AttentionAccumulator:
         return maps
 
     def export(self, maps: Dict[str, np.ndarray], base_image: Image.Image, out_dir: Path):
-        import matplotlib.pyplot as plt
         import matplotlib.cm as cm
 
         out_dir.mkdir(parents=True, exist_ok=True)
@@ -113,87 +103,19 @@ class AttentionAccumulator:
             np.save(out_dir / f"{name}_heat.npy", heat)
 
 
-def collect_token_indices(tokenizer, prompt: str, target_tokens: Optional[Sequence[str]]) -> Dict[str, int]:
+def _collect_token_index(tokenizer, prompt: str, affordance: str) -> Dict[str, int]:
     encoded = tokenizer(prompt, return_tensors="pt", add_special_tokens=True)
     tokens = tokenizer.convert_ids_to_tokens(encoded.input_ids[0])
-    if target_tokens:
-        wanted = list(target_tokens)
-    else:
-        wanted = tokens
-
-    token_map: Dict[str, int] = {}
-    used = set()
-    for want in wanted:
-        want_norm = want.lower()
-        idx = None
-        for i, tok in enumerate(tokens):
-            key = tok.lower()
-            if key == want_norm or want_norm in key:
-                if (want_norm, i) in used:
-                    continue
-                idx = i
-                used.add((want_norm, i))
-                break
-        if idx is not None:
-            token_map[want] = idx
-    return token_map
-
-
-class SDRecordingProcessor:
-    """Wraps AttnProcessor2_0 to capture cross-attention."""
-
-    def __init__(self, base_processor, accumulator: AttentionAccumulator):
-        from diffusers.models.attention_processor import AttnProcessor2_0
-
-        if not isinstance(base_processor, AttnProcessor2_0):
-            raise TypeError("SDRecordingProcessor only supports AttnProcessor2_0.")
-        self.base = base_processor
-        self.acc = accumulator
-
-    def __call__(self, attn, hidden_states, encoder_hidden_states=None, attention_mask=None, **kwargs):
-        if encoder_hidden_states is None:
-            return self.base(attn, hidden_states, encoder_hidden_states, attention_mask, **kwargs)
-
-        import torch
-
-        residual = hidden_states
-        batch_size, sequence_length, _ = hidden_states.shape
-        key_length = encoder_hidden_states.shape[1]
-
-        q = attn.to_q(hidden_states)
-        k = attn.to_k(encoder_hidden_states)
-        v = attn.to_v(encoder_hidden_states)
-
-        head_dim = attn.head_dim
-        heads = attn.heads
-
-        def reshape(x, seq_len):
-            return x.view(batch_size, seq_len, heads, head_dim).permute(0, 2, 1, 3)
-
-        q = reshape(q, sequence_length)
-        k = reshape(k, key_length)
-        v = reshape(v, key_length)
-
-        scale = 1.0 / math.sqrt(head_dim)
-        scores = torch.matmul(q, k.transpose(-1, -2)) * scale
-        if attention_mask is not None:
-            scores = scores + attention_mask
-        probs = torch.softmax(scores, dim=-1)
-        self.acc.add_from_probs(probs, key_length, attn.__class__.__name__)
-
-        context = torch.matmul(probs, v)
-        context = context.permute(0, 2, 1, 3).reshape(batch_size, sequence_length, heads * head_dim)
-        hidden_states = context
-        hidden_states = attn.to_out[0](hidden_states)
-        hidden_states = attn.to_out[1](hidden_states)
-        hidden_states = hidden_states + residual
-        if attn.residual_connection:
-            hidden_states = hidden_states + residual
-        return hidden_states
+    want_norm = affordance.lower()
+    for i, tok in enumerate(tokens):
+        key = tok.lower()
+        if key == want_norm or want_norm in key:
+            return {affordance: i}
+    return {}
 
 
 class FluxAttnRecorderProcessor:
-    """Adapted from Flux scripts: captures true image-query x text-key probabilities."""
+    """Captures true image-query x text-key probabilities for Flux."""
 
     def __init__(self, accumulator: AttentionAccumulator):
         self.acc = accumulator
@@ -263,7 +185,7 @@ class FluxAttnRecorderProcessor:
         if has_enc and N_txt > 0:
             img_start = N_txt
             img_probs = probs[:, :, img_start:, :N_txt]
-            self.acc.add_from_probs(img_probs, N_txt, "flux-block")
+            self.acc.add_from_probs(img_probs, N_txt)
 
         out = torch.matmul(probs, v_bhnd)
         out = out.permute(0, 2, 1, 3).contiguous().view(B, q_all.shape[1], H * Dh)
@@ -281,37 +203,7 @@ class FluxAttnRecorderProcessor:
         return img_out
 
 
-def run_sd(pipe, args: argparse.Namespace, accumulator: AttentionAccumulator, image: Image.Image, out_dir: Path):
-    import torch
-
-    processors = {}
-    for name, proc in pipe.unet.attn_processors.items():
-        if proc is None:
-            processors[name] = proc
-            continue
-        processors[name] = SDRecordingProcessor(proc, accumulator)
-    pipe.unet.set_attn_processor(processors)
-
-    generator = torch.Generator(device=args.device).manual_seed(args.seed)
-    result = pipe(
-        prompt=args.prompt,
-        negative_prompt=args.negative_prompt,
-        image=image,
-        strength=args.strength,
-        guidance_scale=args.guidance,
-        num_inference_steps=args.steps,
-        generator=generator,
-    )
-    result.images[0].save(out_dir / "generated.png")
-
-
 def _iter_flux_attention_modules(transformer):
-    """
-    Supports both older Flux pipelines that expose ``inner_transformer.blocks``
-    and newer versions where the blocks live directly under
-    ``transformer.transformer_blocks`` (or ``blocks``).
-    """
-
     candidate_attrs = [
         "inner_transformer",
         "transformer_blocks",
@@ -355,25 +247,6 @@ def _iter_flux_attention_modules(transformer):
                 yield attn
 
 
-
-def run_flux(pipe, args: argparse.Namespace, accumulator: AttentionAccumulator, image: Image.Image, out_dir: Path):
-    import torch
-
-    for attn in _iter_flux_attention_modules(pipe.transformer):
-        attn.set_processor(FluxAttnRecorderProcessor(accumulator))
-
-    generator = torch.Generator(device=args.device).manual_seed(args.seed)
-    result = pipe(
-        prompt=args.prompt,
-        negative_prompt=args.negative_prompt,
-        image=image,
-        guidance_scale=args.guidance,
-        num_inference_steps=args.steps,
-        generator=generator,
-    )
-    result.images[0].save(out_dir / "generated.png")
-
-
 def main() -> None:
     args = parse_args()
     out_dir = args.output_root.resolve()
@@ -382,48 +255,42 @@ def main() -> None:
     base_image = Image.open(args.image).convert("RGB")
 
     import torch
+    from diffusers import FluxImg2ImgPipeline
 
-    if args.backend == "sd":
-        from diffusers import StableDiffusionImg2ImgPipeline
+    pipe = FluxImg2ImgPipeline.from_pretrained(
+        args.model_id,
+        torch_dtype=torch.bfloat16,
+    ).to(args.device)
 
-        pipe = StableDiffusionImg2ImgPipeline.from_pretrained(
-            args.model_id,
-            torch_dtype=torch.float16,
-            safety_checker=None,
-        ).to(args.device)
-        tokenizer = pipe.tokenizer
-    else:
-        from diffusers import FluxImg2ImgPipeline
-
-        pipe = FluxImg2ImgPipeline.from_pretrained(
-            args.model_id,
-            torch_dtype=torch.bfloat16,
-        ).to(args.device)
-        tokenizer = pipe.tokenizer
-
-    token_map = collect_token_indices(tokenizer, args.prompt, args.tokens)
+    token_map = _collect_token_index(pipe.tokenizer, args.prompt, args.affordance)
     if not token_map:
-        raise RuntimeError("No matching tokens found for tracking.")
+        raise RuntimeError(f"Affordance token '{args.affordance}' not found in prompt tokens.")
 
     accumulator = AttentionAccumulator(token_map)
 
-    if args.backend == "sd":
-        run_sd(pipe, args, accumulator, base_image, out_dir)
-    else:
-        run_flux(pipe, args, accumulator, base_image, out_dir)
+    for attn in _iter_flux_attention_modules(pipe.transformer):
+        attn.set_processor(FluxAttnRecorderProcessor(accumulator))
+
+    generator = torch.Generator(device=args.device).manual_seed(args.seed)
+    result = pipe(
+        prompt=args.prompt,
+        image=base_image,
+        guidance_scale=args.guidance,
+        num_inference_steps=args.steps,
+        generator=generator,
+    )
+    result.images[0].save(out_dir / "generated.png")
 
     maps = accumulator.summary()
     accumulator.export(maps, base_image, out_dir / "attention")
 
     meta = {
-        "backend": args.backend,
         "model_id": args.model_id,
         "prompt": args.prompt,
-        "negative_prompt": args.negative_prompt,
+        "affordance": args.affordance,
         "tokens_tracked": token_map,
         "steps": args.steps,
         "guidance": args.guidance,
-        "strength": args.strength,
         "seed": args.seed,
     }
     (out_dir / "meta.json").write_text(json.dumps(meta, indent=2), encoding="utf-8")

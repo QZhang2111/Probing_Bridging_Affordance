@@ -25,22 +25,16 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("checkpoint", type=Path, help="Path to the saved checkpoint (.pth)")
     parser.add_argument(
+        "--config",
+        type=Path,
+        required=True,
+        help="Single configuration file containing the full experiment setup.",
+    )
+    parser.add_argument(
         "--split",
         choices=["val", "test"],
         default="test",
         help="Dataset split to evaluate (default: test).",
-    )
-    parser.add_argument(
-        "--defaults",
-        type=Path,
-        default=PROJECT_ROOT / "configs" / "default.yaml",
-        help="Path to the default configuration file.",
-    )
-    parser.add_argument(
-        "--local",
-        type=Path,
-        default=PROJECT_ROOT / "configs" / "local.yaml",
-        help="Optional override configuration file.",
     )
     parser.add_argument(
         "--save-examples",
@@ -52,8 +46,9 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> None:
     args = parse_args()
-    local_path = args.local if args.local.exists() else None
-    config = load_config(args.defaults, local_path)
+    if not args.config.exists():
+        raise FileNotFoundError("Please provide --config pointing to a valid YAML file.")
+    config = load_config(args.config, None)
     experiment = LinearProbeExperiment(config)
 
     eval_logger = create_logger(
