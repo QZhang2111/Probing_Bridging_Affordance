@@ -14,6 +14,14 @@ cache/
 cache_*/
 result/
 
+# Local assets (keep placeholders/docs only)
+datasets/*
+!datasets/.gitkeep
+!datasets/README.md
+models/*
+!models/.gitkeep
+!models/README.md
+
 # OS/editor
 .DS_Store
 .vscode/

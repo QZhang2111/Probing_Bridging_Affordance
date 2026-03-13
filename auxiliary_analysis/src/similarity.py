@@ -9,6 +9,6 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-from common.similarity import cosine_similarity, save_similarity_overlay
+from auxiliary_analysis.common.similarity import cosine_similarity, save_similarity_overlay
 
 __all__ = ["cosine_similarity", "save_similarity_overlay"]

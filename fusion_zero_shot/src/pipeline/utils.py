@@ -9,7 +9,7 @@ REPO_ROOT = Path(__file__).resolve().parents[3]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-from common.io_vis import (
+from auxiliary_analysis.common.io_vis import (
     ensure_dir,
     sanitize_token,
     save_colormap,

@@ -9,7 +9,7 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-from common.io_vis import ensure_dir, save_image_colormap, save_image_gray, save_image_rgb
+from auxiliary_analysis.common.io_vis import ensure_dir, save_image_colormap, save_image_gray, save_image_rgb
 
 import numpy as np
 from typing import Dict, Tuple
