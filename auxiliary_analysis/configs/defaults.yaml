@@ -1,0 +1,25 @@
+paths:
+  # Reuse existing token cache structure from the original analysis pipeline.
+  output_root: /home/li325/qing_workspace/exps/affordance-experiments/Section2_exp/cache
+
+general:
+  anchor_pixel: [63, 79]
+  images:
+    knife: /home/li325/qing_workspace/exps/affordance-experiments/Section2_exp/data/knife.jpg
+    kitchen: /home/li325/qing_workspace/exps/affordance-experiments/Section2_exp/data/kitchen_fig3.jpg
+    office: /home/li325/qing_workspace/exps/affordance-experiments/Section2_exp/data/table_knife.jpeg
+  overlay:
+    cmap: viridis
+    alpha: 0.6
+    low_pct: 1.0
+    high_pct: 99.0
+
+# Keep only model keys; scripts read precomputed meta/tokens under output_root/<key>/meta/*.json.
+models:
+  - key: dinov3_vit7b16
+  - key: dino_vitb16
+  - key: dinov2_vitb14
+  - key: sam_vitb
+  - key: clip_vitb16_laion
+  - key: siglip_base_p16_384
+  - key: sd21

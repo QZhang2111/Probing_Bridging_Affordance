@@ -1,0 +1,18 @@
+paths:
+  output_root: /absolute/path/to/precomputed_cache
+
+general:
+  anchor_pixel: [63, 79]
+  images:
+    knife: /absolute/path/to/knife.jpg
+    kitchen: /absolute/path/to/kitchen.jpg
+    office: /absolute/path/to/office.jpg
+  overlay:
+    cmap: viridis
+    alpha: 0.6
+    low_pct: 1.0
+    high_pct: 99.0
+
+models:
+  - key: dinov3_vit7b16
+  - key: dino_vitb16
