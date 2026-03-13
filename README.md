@@ -20,8 +20,6 @@ If you are installing and running this project for the first time, this guide is
 - `auxiliary_analysis/`: optional support analysis scripts
 - `common/`: shared helper utilities
 - `run.py`: unified launcher for all tasks
-- `scripts/smoke_test.sh`: quick launcher-level sanity check
-- `docs/REPRO_STEPS.md`: concise reproducibility checklist
 
 ## Environment Setup
 
@@ -169,7 +167,9 @@ Backward-compatible aliases (`exp1-*`, `exp3-*`, `exp4-*`, `exp2-*`) are still a
 This does not run full experiments; it only verifies all three main launchers are callable.
 
 ```bash
-bash scripts/smoke_test.sh
+python run.py geometry-train -- --help
+python run.py interaction-probe -- --help
+python run.py fusion-eval -- --help
 ```
 
 ## Troubleshooting
@@ -197,7 +197,12 @@ bash scripts/smoke_test.sh
 
 - Keep a copy of your modified YAMLs for exact reruns.
 - Record commit hash and environment package versions when reporting results.
-- For a concise run order, see `docs/REPRO_STEPS.md`.
+
+## Project TODO (Tracked Here)
+
+- Add a single consolidated dependency lock file for reproducible installs.
+- Add benchmark target metrics and expected output examples per experiment.
+- Add optional automated CI smoke checks for launcher commands.
 
 ## License / Third-Party
 
