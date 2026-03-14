@@ -13,6 +13,7 @@ outputs_*/
 cache/
 cache_*/
 result/
+probe_outputs/
 
 # Local assets (keep placeholders/docs only)
 datasets/*
