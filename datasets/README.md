@@ -1,6 +1,6 @@
 # Datasets Folder
 
-Place datasets or symlinks here so the tracked configs can stay public-safe.
+Place datasets or symlinks here so the tracked configs can stay public-safe
 
 Suggested structure:
 
@@ -11,3 +11,4 @@ Suggested structure:
 - `datasets/analysis_images/office.jpg`
 
 `analysis_images/` is only needed for `auxiliary_analysis`.
+
