@@ -209,3 +209,24 @@ python run.py fusion-eval -- --help
 - `datasets/` and `models/` are public placeholders. Symlinks are supported.
 - `fusion_zero_shot/src/dino/third_party/` contains third-party code that follows its original license terms.
 - Local machine overrides should not be committed. The repository ignores `local.yaml` style files.
+
+## Citation
+
+If you use this repository in academic work, cite the associated paper:
+
+```bibtex
+@misc{probing_bridging_affordance_2026,
+  title={Probing and Bridging Geometry--Interaction Cues for Affordance Reasoning in Vision Foundation Models},
+  author={Anonymous},
+  year={2026},
+  note={CVPR submission}
+}
+```
+
+Update this entry with the final author list, venue, and publication year once the paper is public.
+
+## License
+
+This repository is released under the MIT License. See [LICENSE](./LICENSE).
+
+Third-party components under `fusion_zero_shot/src/dino/third_party/` retain their original licenses.
