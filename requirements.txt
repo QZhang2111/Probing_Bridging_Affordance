@@ -1,0 +1,10 @@
+# Unified installation entrypoint for the public repository.
+# Install a CUDA-compatible torch/torchvision build first when needed.
+
+-r geometry_probing/umd_linear_probing/requirements.txt
+-r auxiliary_analysis/requirements.txt
+
+# Additional runtime dependencies used by interaction probing and fusion.
+pillow>=9.0
+opencv-python>=4.8
+scikit-learn>=1.3

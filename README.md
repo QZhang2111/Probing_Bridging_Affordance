@@ -36,8 +36,7 @@ Recommended setup:
 conda create -n affordance python=3.10 -y
 conda activate affordance
 cd /path/to/Probing_Briding_Affordance
-pip install -r geometry_probing/umd_linear_probing/requirements.txt
-pip install -r auxiliary_analysis/requirements.txt
+pip install -r requirements.txt
 ```
 
 CUDA note:
@@ -51,11 +50,10 @@ Example for CUDA 12.1:
 conda create -n affordance python=3.10 -y
 conda activate affordance
 pip install torch torchvision --index-url https://download.pytorch.org/whl/cu121
-pip install -r geometry_probing/umd_linear_probing/requirements.txt
-pip install -r auxiliary_analysis/requirements.txt
+pip install -r requirements.txt
 ```
 
-This repository does not currently ship a single top-level `requirements.txt`. The two requirement files above are the maintained installation entrypoints.
+The top-level [`requirements.txt`](./requirements.txt) is the recommended public installation entrypoint. It reuses the maintained module requirement files and adds the extra packages needed by interaction probing and fusion.
 
 ## Data and Model Layout
 
