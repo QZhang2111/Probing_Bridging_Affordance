@@ -29,7 +29,7 @@ The model keys in the config must match the cache directory names exactly.
 ## Quick Start
 
 ```bash
-cd /path/to/Probing_Briding_Affordance
+cd /path/to/Probing_Bridging_Affordance
 python run.py aux-knife-sim -- --config auxiliary_analysis/configs/defaults.yaml --model dinov2_vitb14_layer12
 python run.py aux-cross-sim -- --config auxiliary_analysis/configs/defaults.yaml --model dinov2_vitb14_layer12
 python run.py aux-pca -- --config auxiliary_analysis/configs/defaults.yaml --model dinov2_vitb14_layer12

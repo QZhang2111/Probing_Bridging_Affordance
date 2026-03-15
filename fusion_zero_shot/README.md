@@ -5,14 +5,14 @@ Zero-shot affordance localization on AGD20K by combining geometry and interactio
 ## Recommended Entry
 
 ```bash
-cd /path/to/Probing_Briding_Affordance
+cd /path/to/Probing_Bridging_Affordance
 python run.py fusion-eval -- --config fusion_zero_shot/src/agd20k_eval/config.yaml
 ```
 
 ## Direct Entry
 
 ```bash
-cd /path/to/Probing_Briding_Affordance/fusion_zero_shot
+cd /path/to/Probing_Bridging_Affordance/fusion_zero_shot
 python ./run_agd20k_eval.py --config ./src/agd20k_eval/config.yaml
 ```
 

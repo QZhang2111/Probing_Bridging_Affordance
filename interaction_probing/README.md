@@ -5,7 +5,7 @@ FLUX Kontext cross-attention probing for affordance-specific prompts.
 ## Recommended Entry
 
 ```bash
-cd /path/to/Probing_Briding_Affordance
+cd /path/to/Probing_Bridging_Affordance
 python run.py interaction-probe -- \
   --model-id models/FLUX.1-Kontext-dev \
   --image /path/to/input.png \
@@ -18,7 +18,7 @@ python run.py interaction-probe -- \
 ## Direct Entry
 
 ```bash
-cd /path/to/Probing_Briding_Affordance/interaction_probing
+cd /path/to/Probing_Bridging_Affordance/interaction_probing
 python ./cross_attention_probe/cross_attention_probe.py \
   --model-id ../models/FLUX.1-Kontext-dev \
   --image /path/to/input.png \

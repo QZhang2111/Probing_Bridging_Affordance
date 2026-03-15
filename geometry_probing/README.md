@@ -7,7 +7,7 @@ Dense linear probing on the UMD part-affordance dataset.
 Recommended:
 
 ```bash
-cd /path/to/Probing_Briding_Affordance
+cd /path/to/Probing_Bridging_Affordance
 python run.py geometry-train -- --config geometry_probing/umd_linear_probing/configs/dinov2.yaml
 python run.py geometry-eval -- \
   /path/to/linear_probe.pth \
@@ -18,7 +18,7 @@ python run.py geometry-eval -- \
 Direct:
 
 ```bash
-cd /path/to/Probing_Briding_Affordance/geometry_probing
+cd /path/to/Probing_Bridging_Affordance/geometry_probing
 python train.py --config ./umd_linear_probing/configs/dinov2.yaml
 python eval.py /path/to/linear_probe.pth --config ./umd_linear_probing/configs/dinov2.yaml --split test
 ```

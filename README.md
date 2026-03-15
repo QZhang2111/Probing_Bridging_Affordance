@@ -12,7 +12,7 @@ The repository is organized around runnable experiment entrypoints rather than a
 ## Repository Layout
 
 ```text
-Probing_Briding_Affordance/
+Probing_Bridging_Affordance/
 ├── geometry_probing/
 ├── auxiliary_analysis/
 ├── interaction_probing/
@@ -35,7 +35,7 @@ Recommended setup:
 ```bash
 conda create -n affordance python=3.10 -y
 conda activate affordance
-cd /path/to/Probing_Briding_Affordance
+cd /path/to/Probing_Bridging_Affordance
 pip install -r requirements.txt
 ```
 
