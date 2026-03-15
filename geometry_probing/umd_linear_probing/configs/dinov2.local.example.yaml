@@ -1,0 +1,40 @@
+dataset:
+  root: /absolute/path/to/UMD/part-affordance-dataset
+  split_path: /absolute/path/to/category_split_seed42_v20.json
+  geometry:
+    manifest_path: /absolute/path/to/metric3d_predictions.json
+
+model:
+  target: dinov2
+  params:
+    name: dinov2_vitb14
+    repo_path: /absolute/path/to/dinov2/source
+    checkpoint_path: /absolute/path/to/dinov2_vitb14_pretrain.pth
+    layers_to_hook: [2, 5, 8, 11]
+    primary_layer: 2
+    patch_size: 14
+    head:
+      type: multi_layer_linear
+      feature_keys: [2, 5, 8, 11]
+      primary_key: 2
+      fuse_mode: concat
+      use_batchnorm: true
+      dropout: 0.0
+    output_dir_name: dinov2_both_multi
+
+training:
+  batch_size: 4
+  num_workers: 4
+  max_epochs: 2
+  patience: 1
+  lr_grid: [0.001]
+  weight_decay_grid: [0.01]
+  grad_clip_norm: 1.0
+  eval_interval: 1
+  log_interval: 100
+  val_log_interval: 100
+  device: cuda
+  precision: bf16
+  output_root: outputs
+  seed: 1337
+  accumulate_grad_batches: 1

@@ -1,23 +1,30 @@
-# Main Experiment 3: Geometry × Interaction Fusion (AGD20K)
+# Fusion Zero-Shot
 
-Goal: evaluate training-free geometry-interaction fusion on AGD20K in a zero-shot setting.
+Zero-shot affordance localization on AGD20K by combining geometry and interaction priors.
 
-## Recommended Entry (Unified)
+## Recommended Entry
+
 ```bash
-cd /home/li325/qing_workspace/Probing_Briding_Affordance
+cd /path/to/Probing_Briding_Affordance
 python run.py fusion-eval -- --config fusion_zero_shot/src/agd20k_eval/config.yaml
 ```
 
-## Direct Entry (Backward Compatible)
+## Direct Entry
+
 ```bash
-cd /home/li325/qing_workspace/Probing_Briding_Affordance/fusion_zero_shot
+cd /path/to/Probing_Briding_Affordance/fusion_zero_shot
 python ./run_agd20k_eval.py --config ./src/agd20k_eval/config.yaml
 ```
 
 ## Main Components
-- `src/agd20k_eval/`: evaluation pipeline
-- `src/flux_kontext_interaction/`: cross-attention extraction and warping tools
-- `src/pipeline/`: ROI/PCA/geometry fusion modules
-- `src/dino/`: DINO feature extraction dependencies
 
-Configure local dataset and model paths in `src/agd20k_eval/config.yaml` before running.
+- `src/agd20k_eval/`: evaluation loop and metric aggregation
+- `src/flux_kontext_interaction/`: attention extraction and heatmap warping
+- `src/pipeline/`: ROI, PCA, geometry, and fusion stages
+- `src/dino/`: DINO feature extraction dependency layer
+
+## Public Default Assets
+
+- dataset under `datasets/AGD20K/AGD20K/Unseen/testset/`
+- FLUX model under `models/FLUX.1-Kontext-dev/`
+- DINO checkpoints under `models/`

@@ -15,6 +15,10 @@ cache_*/
 result/
 probe_outputs/
 
+# Local path overrides
+**/local.yaml
+*.local.yaml
+
 # Local assets (keep placeholders/docs only)
 datasets/*
 !datasets/.gitkeep

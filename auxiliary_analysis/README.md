@@ -1,40 +1,45 @@
-# Optional Module: Auxiliary Analysis (P0)
+# Auxiliary Analysis
 
-Goal: provide supporting analysis scripts outside the three main benchmark tracks.
+Supporting analysis scripts for patch-level inspection and qualitative interpretation.
 
-This module includes four runnable scripts:
-- `scripts/run_knife_patch_similarity.py`: build knife anchor patch similarity maps.
-- `scripts/run_cross_domain_similarity.py`: transfer knife anchor similarity to kitchen/office scenes.
-- `scripts/run_pca_analysis.py`: project kitchen/office features into knife ROI PCA subspace.
-- `scripts/run_clip_patch_probe.py`: CLIP patch-level prompt probing.
+## Scripts
+
+- `scripts/run_knife_patch_similarity.py`
+- `scripts/run_cross_domain_similarity.py`
+- `scripts/run_pca_analysis.py`
+- `scripts/run_clip_patch_probe.py`
 
 ## Config
-- Default: `configs/defaults.yaml`
-- Template: `configs/local.example.yaml`
 
-The first three scripts expect precomputed cache files (`output_root/<model_key>/meta/*.json` + token npz).
-If missing, generate caches from your original preprocessing pipeline first.
+Default config: [`configs/defaults.yaml`](./configs/defaults.yaml)
 
-## Quick Start
-```bash
-cd /home/li325/qing_workspace/Probing_Briding_Affordance/auxiliary_analysis
+Machine-specific template: [`configs/local.example.yaml`](./configs/local.example.yaml)
 
-python scripts/run_knife_patch_similarity.py --config configs/defaults.yaml --model dinov3_vit7b16
-python scripts/run_cross_domain_similarity.py --config configs/defaults.yaml --model dinov3_vit7b16
-python scripts/run_pca_analysis.py --config configs/defaults.yaml --model dinov3_vit7b16
+The first three scripts expect a precomputed cache at:
 
-python scripts/run_clip_patch_probe.py \
-  --image /path/to/toothbrush.png \
-  --prompts "hold toothbrush" "brush teeth" \
-  --output-root outputs_clip_probe
+```text
+output_root/<model_key>/
+├── meta/
+├── tokens/
+└── pca/
 ```
 
-## Outputs
-- `output_root/<model_key>/similarity/*`: similarity heatmaps and overlays
-- `output_root/<model_key>/pca/knife/*`: PCA projection outputs
-- `outputs_clip_probe/attention/*`: CLIP probing heatmaps, overlays, and npy files
+The model keys in the config must match the cache directory names exactly.
 
-## Dependencies
+## Quick Start
+
 ```bash
-pip install -r requirements.txt
+cd /path/to/Probing_Briding_Affordance
+python run.py aux-knife-sim -- --config auxiliary_analysis/configs/defaults.yaml --model dinov2_vitb14_layer12
+python run.py aux-cross-sim -- --config auxiliary_analysis/configs/defaults.yaml --model dinov2_vitb14_layer12
+python run.py aux-pca -- --config auxiliary_analysis/configs/defaults.yaml --model dinov2_vitb14_layer12
+```
+
+CLIP patch probe:
+
+```bash
+python run.py aux-clip-probe -- \
+  --image datasets/analysis_images/knife.jpg \
+  --prompts "hold knife" "cut with knife" \
+  --output-root outputs/clip_probe
 ```

@@ -1,6 +1,6 @@
 dataset:
-  root: /home/li325/qing_workspace/dataset/UMD/part-affordance-dataset
-  split_path: /home/li325/qing_workspace/exps/affordance-experiments/umd_linear_probing/metadata/splits/category_split_seed42_v20.json
+  root: ../../datasets/UMD/part-affordance-dataset
+  split_path: metadata/splits/category_split_seed42_v20.json
   patch_size: 16
   num_classes: 8
   ignore_index: 255
@@ -9,7 +9,7 @@ dataset:
   metric_ignore_indices: [0]
   pad_to_patch_multiple: true
   geometry:
-    manifest_path:  /home/li325/qing_workspace/exps/affordance-experiments/umd_linear_probing/metadata/splits/metric3d_predictions.json
+    manifest_path: metadata/splits/metric3d_predictions.json
     use_depth: true
     use_normal: true
     normalization:

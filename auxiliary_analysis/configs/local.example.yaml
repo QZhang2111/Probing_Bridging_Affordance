@@ -14,5 +14,6 @@ general:
     high_pct: 99.0
 
 models:
-  - key: dinov3_vit7b16
-  - key: dino_vitb16
+  - key: dinov3_vit7b16_layer40
+  - key: dino_vitb16_layer12
+  - key: dinov2_vitb14_layer12

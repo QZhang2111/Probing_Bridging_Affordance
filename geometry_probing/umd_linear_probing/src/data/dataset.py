@@ -132,6 +132,14 @@ class UMDAffordanceDataset(Dataset):
                             'normal': item.get('pred_normal_npy'),
                         }
 
+    def _resolve_geom_asset(self, value: Optional[str]) -> Optional[Path]:
+        if not value:
+            return None
+        path = Path(value)
+        if path.is_absolute():
+            return path
+        return self.dataset_root / path
+
     def __len__(self) -> int:
         return len(self.split_records)
 
@@ -200,7 +208,10 @@ class UMDAffordanceDataset(Dataset):
 
             if use_depth and entry.get('depth'):
                 try:
-                    depth = np.load(entry['depth']).astype(np.float32)  # HxW
+                    depth_path = self._resolve_geom_asset(entry['depth'])
+                    if depth_path is None:
+                        raise FileNotFoundError("Depth path is missing from geometry manifest.")
+                    depth = np.load(depth_path).astype(np.float32)  # HxW
                     # resize to current image size
                     depth_rs = cv2.resize(depth, (W, H), interpolation=cv2.INTER_LINEAR)
                     # normalize per-image percentiles
@@ -213,7 +224,10 @@ class UMDAffordanceDataset(Dataset):
 
             if use_normal and entry.get('normal'):
                 try:
-                    normal = np.load(entry['normal']).astype(np.float32)  # HxWx3, in [-1,1]
+                    normal_path = self._resolve_geom_asset(entry['normal'])
+                    if normal_path is None:
+                        raise FileNotFoundError("Normal path is missing from geometry manifest.")
+                    normal = np.load(normal_path).astype(np.float32)  # HxWx3, in [-1,1]
                     # resize to current image size
                     normal_rs = cv2.resize(normal, (W, H), interpolation=cv2.INTER_LINEAR)
                     # renormalize per-pixel

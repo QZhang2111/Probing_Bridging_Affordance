@@ -1,11 +1,48 @@
 from __future__ import annotations
 
-import json
+import importlib.util
 import logging
-import shlex
-import subprocess
+import sys
 from pathlib import Path
 from typing import Dict, List, Optional
+
+_VIS_MODULE = None
+_WORKERS: Dict[str, object] = {}
+
+
+def _load_visualizer_module(script_path: Path):
+    global _VIS_MODULE
+    if _VIS_MODULE is not None:
+        return _VIS_MODULE
+
+    module_name = "fusion_zero_shot_flux_kontext_visualizer"
+    spec = importlib.util.spec_from_file_location(module_name, script_path)
+    if spec is None or spec.loader is None:
+        raise ImportError(f"Failed to load visualizer module from {script_path}")
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[module_name] = module
+    spec.loader.exec_module(module)
+    _VIS_MODULE = module
+    return module
+
+
+def _get_worker(script_path: Path, model_dir: Path):
+    module = _load_visualizer_module(script_path)
+    key = str(model_dir.resolve())
+    worker = _WORKERS.get(key)
+    if worker is None:
+        logging.info("Creating persistent Kontext worker for %s", key)
+        worker = module.KontextWorker(model_dir=key, device="cuda")
+        _WORKERS[key] = worker
+    return module, worker
+
+
+def close_kontext_workers() -> None:
+    for worker in _WORKERS.values():
+        close = getattr(worker, "close", None)
+        if callable(close):
+            close()
+    _WORKERS.clear()
 
 
 def run_kontext_generation(
@@ -22,55 +59,33 @@ def run_kontext_generation(
     negative_prompt: Optional[str] = None,
 ) -> Dict[str, Path]:
     """
-    Run `visualize_flux_kontext_cross_attention.py` and return key output paths.
+    Run Kontext generation and return key output paths.
+
+    The default path uses a persistent in-process worker so the FLUX pipeline
+    stays resident on GPU across samples.
     """
     output_root = output_root.resolve()
     output_root.mkdir(parents=True, exist_ok=True)
 
-    cmd = [
-        "python",
-        str(script_path),
-        "--model_dir",
-        str(model_dir),
-        "--image_path",
-        str(image_path),
-        "--output_root",
-        str(output_root),
-        "--prompt",
+    module, worker = _get_worker(script_path, model_dir)
+    logging.info(
+        "Running Kontext generation in persistent worker: model=%s image=%s prompt=%r",
+        model_dir,
+        image_path,
         prompt,
-        "--num_steps",
-        str(num_steps),
-        "--guidance",
-        str(guidance),
-        "--seed",
-        str(seed),
-    ]
-    if height is not None:
-        cmd += ["--height", str(height)]
-    if width is not None:
-        cmd += ["--width", str(width)]
-    if negative_prompt:
-        cmd += ["--negative_prompt", negative_prompt]
-
-    logging.info("Running Kontext generation: %s", " ".join(shlex.quote(c) for c in cmd))
-    subprocess.run(cmd, check=True, cwd=script_path.parent.resolve())
-
-    # After execution, locate directories
-    latest_dirs = sorted(output_root.glob("*"))
-    if not latest_dirs:
-        raise RuntimeError(f"No output directory created in {output_root}")
-    exp_dir = latest_dirs[-1]
-
-    tokens_path = exp_dir / "tokens_t5.json"
-    if not tokens_path.exists():
-        raise FileNotFoundError(f"tokens_t5.json not found in {exp_dir}")
-    with tokens_path.open("r", encoding="utf-8") as f:
-        tokens = json.load(f)
-
-    return {
-        "exp_dir": exp_dir,
-        "tokens_json": tokens_path,
-        "tokens": tokens,
-        "per_token_dir": exp_dir / "per_token",
-        "generated_image": exp_dir / "gen.png",
-    }
+    )
+    result = module.run_visualization(
+        model_dir=str(model_dir),
+        image_path=str(image_path),
+        prompt=prompt,
+        output_root=str(output_root),
+        num_steps=num_steps,
+        guidance=guidance,
+        seed=seed,
+        device="cuda",
+        height=height,
+        width=width,
+        negative_prompt=negative_prompt,
+        worker=worker,
+    )
+    return result

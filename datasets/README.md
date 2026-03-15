@@ -1,9 +1,13 @@
 # Datasets Folder
 
-Place downloaded datasets here (or mount/symlink them), then point config YAMLs to the correct paths.
+Place datasets or symlinks here so the tracked configs can stay public-safe.
 
 Suggested structure:
+
 - `datasets/UMD/part-affordance-dataset/`
 - `datasets/AGD20K/AGD20K/Unseen/testset/`
+- `datasets/analysis_images/knife.jpg`
+- `datasets/analysis_images/kitchen.jpg`
+- `datasets/analysis_images/office.jpg`
 
-You can use symlinks if your datasets are stored elsewhere.
+`analysis_images/` is only needed for `auxiliary_analysis`.

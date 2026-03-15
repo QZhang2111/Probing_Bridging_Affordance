@@ -1,6 +1,5 @@
-# Copy this file to configs/local.yaml and edit as needed to point to local
-# Copy this file to configs/local.yaml and edit as needed to point to local
-# resources that live outside the repository.
+# Copy this file to configs/local.yaml and edit it for machine-specific paths.
+# Keep configs/local.yaml untracked.
 model:
   checkpoint_path: /absolute/path/to/dinov3_vit7b16_pretrain_lvd1689m.pth
 paths:

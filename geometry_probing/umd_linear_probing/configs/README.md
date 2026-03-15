@@ -1,8 +1,9 @@
-# Configs (Minimal Set)
+# Geometry Configs
 
-This folder keeps only the base configs needed for geometry probing.
+This folder keeps the public default configs for geometry probing.
 
-Base configs:
+Available configs:
+
 - `clip.yaml`
 - `dino.yaml`
 - `dinov2.yaml`
@@ -11,12 +12,15 @@ Base configs:
 - `sd21.yaml`
 - `siglip.yaml`
 
-Usage (recommended):
+Usage:
+
 ```bash
 python scripts/train.py --config configs/dinov2.yaml
-python scripts/eval.py  --config configs/dinov2.yaml
+python scripts/eval.py /path/to/linear_probe.pth --config configs/dinov2.yaml --split test
 ```
 
-Notes:
-- Default/local configs are not used in the minimal setup; pass `--config` explicitly.
-- Update dataset/model paths inside the YAMLs to match your environment.
+Conventions:
+
+- dataset assets resolve from `datasets/`
+- model source trees and checkpoints resolve from `models/`
+- geometry side-data manifest resolves from `metadata/splits/`

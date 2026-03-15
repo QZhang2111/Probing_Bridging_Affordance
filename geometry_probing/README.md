@@ -1,26 +1,34 @@
-# Main Experiment 1: Geometry Probing (Linear Probe)
+# Geometry Probing
 
-Goal: evaluate geometric affordance awareness on UMD/AGD20K via linear probing.
+Dense linear probing on the UMD part-affordance dataset.
 
-The core implementation is kept under `./umd_linear_probing`.
+## Entry Points
 
-## Recommended Entry (Unified)
+Recommended:
+
 ```bash
-cd /home/li325/qing_workspace/Probing_Briding_Affordance
+cd /path/to/Probing_Briding_Affordance
 python run.py geometry-train -- --config geometry_probing/umd_linear_probing/configs/dinov2.yaml
-python run.py geometry-eval  -- --config geometry_probing/umd_linear_probing/configs/dinov2.yaml
+python run.py geometry-eval -- \
+  /path/to/linear_probe.pth \
+  --config geometry_probing/umd_linear_probing/configs/dinov2.yaml \
+  --split test
 ```
 
-## Direct Entry (Backward Compatible)
+Direct:
+
 ```bash
-cd /home/li325/qing_workspace/Probing_Briding_Affordance/geometry_probing
-python ./train.py --config ./umd_linear_probing/configs/dinov2.yaml
-python ./eval.py  --config ./umd_linear_probing/configs/dinov2.yaml
+cd /path/to/Probing_Briding_Affordance/geometry_probing
+python train.py --config ./umd_linear_probing/configs/dinov2.yaml
+python eval.py /path/to/linear_probe.pth --config ./umd_linear_probing/configs/dinov2.yaml --split test
 ```
 
-## Key Files
-- Train/eval scripts: `umd_linear_probing/scripts/train.py`, `umd_linear_probing/scripts/eval.py`
-- Model configs: `umd_linear_probing/configs/*.yaml`
-- Config guide: `umd_linear_probing/configs/README.md`
+## Assets
 
-Update dataset and checkpoint paths in YAML files before running.
+Expected public defaults:
+
+- dataset under `datasets/UMD/part-affordance-dataset/`
+- model source trees under `models/`
+- checkpoints under `models/*.pth`
+
+Main configs live in [`umd_linear_probing/configs/`](./umd_linear_probing/configs/).

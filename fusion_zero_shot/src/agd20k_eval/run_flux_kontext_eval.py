@@ -22,7 +22,7 @@ from prompt_templates import PROMPT_TEMPLATES
 from utils.data_iter import iter_agd20k_samples, SampleEntry
 from utils.logging_utils import append_csv, save_json, setup_logging
 from metrics import cal_kl, cal_sim, cal_nss
-from kontext_runner import run_kontext_generation
+from kontext_runner import close_kontext_workers, run_kontext_generation
 from heatmap_warper import warp_heatmap_cli
 
 
@@ -737,18 +737,22 @@ def main():
     args = parser.parse_args()
 
     cfg = load_config(args.config)
+    config_dir = args.config.expanduser().resolve().parent
     geom_cfg = cfg.get("geom_pipeline", {}) or {}
     geom_enabled = bool(geom_cfg.get("enable", False))
 
     dataset_root = Path(cfg["dataset_root"]).expanduser()
     if not dataset_root.is_absolute():
-        dataset_root = (ROOT / dataset_root).resolve()
+        dataset_root = (config_dir / dataset_root).resolve()
 
     output_root = Path(cfg["output_root"]).expanduser()
     if not output_root.is_absolute():
-        output_root = (ROOT / output_root).resolve()
+        output_root = (config_dir / output_root).resolve()
 
-    cfg["model_dir"] = str(Path(cfg["model_dir"]).expanduser().resolve())
+    model_dir = Path(cfg["model_dir"]).expanduser()
+    if not model_dir.is_absolute():
+        model_dir = (config_dir / model_dir).resolve()
+    cfg["model_dir"] = str(model_dir)
 
     exp_output_root: Optional[Path] = None
     if cfg.get("resume"):
@@ -854,58 +858,61 @@ def main():
                     aff_metrics[key_metric] += val
         if processed:
             logging.info("Resume enabled: preloaded %d entries from %s", processed, summary_path)
-    for sample in iter_agd20k_samples(
-        dataset_root,
-        affordances=cfg.get("affordances"),
-        max_per_object=cfg.get("max_images_per_object"),
-    ):
-        total += 1
-        key = (sample.affordance, sample.object_name, sample.image_path.name)
-        if cfg.get("resume") and key in processed_keys:
-            resume_reused += 1
-            continue
-        try:
-            detail = process_sample(sample, cfg, exp_output_root, summary_headers, geom_cfg)
-            if detail:
-                processed += 1
-                processed_keys.add(key)
-                aff_metrics = per_affordance_sums[detail["affordance"]]
-                aff_metrics["count"] += 1
-                for key_metric in metric_keys:
-                    val_str = detail.get(key_metric, "")
-                    if val_str in ("", None):
-                        continue
-                    try:
-                        val = float(val_str)
-                    except (TypeError, ValueError):
-                        continue
-                    metric_sums[key_metric] += val
-                    aff_metrics[key_metric] += val
-            else:
-                skipped_samples.append(
+    try:
+        for sample in iter_agd20k_samples(
+            dataset_root,
+            affordances=cfg.get("affordances"),
+            max_per_object=cfg.get("max_images_per_object"),
+        ):
+            total += 1
+            key = (sample.affordance, sample.object_name, sample.image_path.name)
+            if cfg.get("resume") and key in processed_keys:
+                resume_reused += 1
+                continue
+            try:
+                detail = process_sample(sample, cfg, exp_output_root, summary_headers, geom_cfg)
+                if detail:
+                    processed += 1
+                    processed_keys.add(key)
+                    aff_metrics = per_affordance_sums[detail["affordance"]]
+                    aff_metrics["count"] += 1
+                    for key_metric in metric_keys:
+                        val_str = detail.get(key_metric, "")
+                        if val_str in ("", None):
+                            continue
+                        try:
+                            val = float(val_str)
+                        except (TypeError, ValueError):
+                            continue
+                        metric_sums[key_metric] += val
+                        aff_metrics[key_metric] += val
+                else:
+                    skipped_samples.append(
+                        {
+                            "affordance": sample.affordance,
+                            "object": sample.object_name,
+                            "image": sample.image_path.name,
+                            "reason": "detail_not_returned",
+                        }
+                    )
+            except Exception as exc:
+                logging.exception(
+                    "Failed processing %s/%s/%s: %s",
+                    sample.affordance,
+                    sample.object_name,
+                    sample.image_path.name,
+                    exc,
+                )
+                failed_samples.append(
                     {
                         "affordance": sample.affordance,
                         "object": sample.object_name,
                         "image": sample.image_path.name,
-                        "reason": "detail_not_returned",
+                        "error": str(exc),
                     }
                 )
-        except Exception as exc:
-            logging.exception(
-                "Failed processing %s/%s/%s: %s",
-                sample.affordance,
-                sample.object_name,
-                sample.image_path.name,
-                exc,
-            )
-            failed_samples.append(
-                {
-                    "affordance": sample.affordance,
-                    "object": sample.object_name,
-                    "image": sample.image_path.name,
-                    "error": str(exc),
-                }
-            )
+    finally:
+        close_kontext_workers()
 
     overall_metrics = {}
     if processed:

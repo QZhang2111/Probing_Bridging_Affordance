@@ -20,7 +20,7 @@ import yaml
 BASE_DIR = Path(__file__).resolve().parents[1]
 DEFAULT_CONFIG_PATH = BASE_DIR / "configs" / "defaults.yaml"
 LOCAL_CONFIG_PATH = BASE_DIR / "configs" / "local.yaml"
-ENV_CHECKPOINT = "/home/li325/qing_workspace/model_for_test/dinov3_vit7b16_pretrain_lvd1689m.pth"
+ENV_CHECKPOINT = "DINO_CHECKPOINT_PATH"
 
 
 def _read_yaml(path: Path) -> Dict[str, Any]:

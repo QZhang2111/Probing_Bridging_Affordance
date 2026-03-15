@@ -1,6 +1,6 @@
-dataset_root: /home/li325/qing_workspace/dataset/AGD20K/AGD20K/Unseen/testset
-model_dir: /home/li325/qing_workspace/model_for_test/FLUX.1-Kontext-dev
-output_root: ./outputs
+dataset_root: ../../../datasets/AGD20K/AGD20K/Unseen/testset
+model_dir: ../../../models/FLUX.1-Kontext-dev
+output_root: ../../../outputs/fusion_zero_shot
 num_inference_steps: 20
 guidance_scale: 2.5
 seed: 3
@@ -15,7 +15,7 @@ max_images_per_object: null  # Optional integer cap for number of samples per ob
 token_selection: "auto"  # auto: match tokens from prompt_templates
 save_intermediate: false  # If true, save intermediate Kontext logs
 resume: true  # If outputs/<exp_id> exists, decide whether to skip completed samples
-resume_run_dir: /home/li325/qing_workspace/exps/affordance-experiments/FLUX/AGD20K_Flux_unseen/outputs/20260128-152904  # Optional existing output directory (absolute or relative to output_root) for resume
+resume_run_dir: null  # Optional existing output directory (absolute or relative to output_root) for resume
 
 geom_pipeline:
   enable: true
@@ -23,7 +23,7 @@ geom_pipeline:
   dino_target_wh: null  # e.g. [1260, 980] for DINOv2; null uses backend default
   dino_patch_size: null # e.g. 14 for DINOv2; null uses backend default
   dino_cache_only: true # require cache hit; avoids loading DINO model on GPU
-  cache_root: ./cache
+  cache_root: ../../../outputs/fusion_cache
   roi_percentile: 80.0
   token_threshold: 0.1
   disable_object_roi: false

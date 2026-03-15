@@ -1,0 +1,42 @@
+dataset_root: /absolute/path/to/AGD20K/AGD20K/Unseen/testset
+model_dir: /absolute/path/to/FLUX.1-Kontext-dev
+output_root: ../../../outputs/fusion_zero_shot
+num_inference_steps: 20
+guidance_scale: 2.5
+seed: 3
+height: null
+width: null
+match_input_resolution: true
+gpus: ["cuda:0"]
+affordances: null
+max_images_per_object: null
+token_selection: "auto"
+save_intermediate: false
+resume: true
+resume_run_dir: null
+
+geom_pipeline:
+  enable: true
+  dino_backend: dinov3
+  dino_target_wh: null
+  dino_patch_size: null
+  dino_cache_only: true
+  cache_root: ../../../outputs/fusion_cache
+  roi_percentile: 80.0
+  token_threshold: 0.1
+  disable_object_roi: false
+  pca_components: 5
+  geom_sigma: 1.2
+  geom_threshold: 0.7
+  geom_soft_fusion: true
+  geom_soft_lambda: 0.65
+  geom_soft_gamma: 0.7
+  geom_soft_temperature: [0.30, 0.40, 0.50, 0.60]
+  geom_soft_base: 0
+  geom_soft_log1p: false
+  geom_sim_use_nss: true
+  geom_sim_topk_percent: 5.0
+  geom_sim_nss_weight: 1.0
+  geom_sim_topk_weight: 0.0
+  fusion_thresholds: [0.30, 0.40, 0.50]
+  keep_largest: true

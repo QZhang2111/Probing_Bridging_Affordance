@@ -54,6 +54,7 @@ import json
 import math
 import datetime
 import logging
+from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
@@ -492,23 +493,209 @@ def make_per_layer_stepavg_heatmaps(
         logging.info("[viz] layer %s averaged over %d steps -> %s", tag, counts[tag], layer_dir)
 
 
+# ========= Reusable Runtime =========
+def _make_output_dir(output_root: str | Path, prompt: str) -> Path:
+    ts = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+    safe_prompt = "".join(c if c.isalnum() else "_" for c in prompt)[:80]
+    out_dir = Path(output_root).resolve() / f"{safe_prompt}_{ts}"
+    out_dir.mkdir(parents=True, exist_ok=True)
+    return out_dir
+
+
+def _configure_logging(out_dir: Path) -> tuple[list[logging.Handler], int]:
+    root = logging.getLogger()
+    previous_handlers = list(root.handlers)
+    previous_level = root.level
+    logging.basicConfig(
+        level=logging.INFO,
+        format="[%(asctime)s] %(message)s",
+        handlers=[
+            logging.FileHandler(out_dir / "log.txt", encoding="utf-8"),
+            logging.StreamHandler(),
+        ],
+        force=True,
+    )
+    return previous_handlers, previous_level
+
+
+def _restore_logging(previous_handlers: list[logging.Handler], previous_level: int) -> None:
+    root = logging.getLogger()
+    current_handlers = list(root.handlers)
+    for handler in current_handlers:
+        root.removeHandler(handler)
+        try:
+            handler.close()
+        except Exception:
+            pass
+    root.setLevel(previous_level)
+    for handler in previous_handlers:
+        root.addHandler(handler)
+
+
+class KontextWorker:
+    """Persistent Kontext runtime that keeps the FLUX pipeline resident on GPU."""
+
+    def __init__(
+        self,
+        model_dir: str | Path,
+        *,
+        device: str = "cuda",
+        torch_dtype=torch.bfloat16,
+    ) -> None:
+        self.model_dir = str(model_dir)
+        self.device = device
+        logging.info("Load FluxKontextPipeline from %s", self.model_dir)
+        self.pipe = FluxKontextPipeline.from_pretrained(self.model_dir, torch_dtype=torch_dtype)
+        self.pipe = self.pipe.to(device)
+
+    def close(self) -> None:
+        try:
+            del self.pipe
+        finally:
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
+
+
+def run_visualization(
+    *,
+    model_dir: str | Path,
+    image_path: str | Path,
+    prompt: str,
+    output_root: str | Path,
+    guidance: float = 2.5,
+    num_steps: int = 20,
+    seed: int = 0,
+    device: str = "cuda",
+    negative_prompt: Optional[str] = None,
+    save_per_layer: bool = False,
+    height: Optional[int] = None,
+    width: Optional[int] = None,
+    match_input_resolution: bool = False,
+    worker: Optional[KontextWorker] = None,
+) -> Dict[str, Any]:
+    image_path = str(image_path)
+    if not os.path.exists(image_path):
+        raise FileNotFoundError(f"Image not found: {image_path}")
+
+    set_seed(seed)
+    out_dir = _make_output_dir(output_root, prompt)
+    previous_handlers, previous_level = _configure_logging(out_dir)
+
+    owns_worker = worker is None
+    try:
+        try:
+            if worker is None:
+                worker = KontextWorker(model_dir, device=device)
+            pipe = worker.pipe
+
+            global EXPECTED_LATENT_HW
+            EXPECTED_LATENT_HW = None
+            ATTN_LOG.clear()
+
+            image = Image.open(image_path).convert("RGB")
+            if match_input_resolution and (height is None or width is None):
+                orig_w, orig_h = image.size
+                matched_h, matched_w = pick_preferred_resolution((orig_h, orig_w))
+                height = matched_h
+                width = matched_w
+                logging.info(
+                    "match_input_resolution=True -> use preferred size %dx%d (original %dx%d)",
+                    matched_h,
+                    matched_w,
+                    orig_h,
+                    orig_w,
+                )
+
+            tokens = dump_tokens_t5(pipe, prompt, str(out_dir))
+
+            attach_recorder_to_dual_blocks(pipe)
+
+            global LAST_IMG_IDS
+            LAST_IMG_IDS = None
+            orig_forward = pipe.transformer.forward
+
+            def forward_wrapper(*args, **kwargs):
+                global LAST_IMG_IDS
+                if "img_ids" in kwargs and kwargs["img_ids"] is not None:
+                    LAST_IMG_IDS = kwargs["img_ids"].detach().to(torch.float32).cpu()
+                return orig_forward(*args, **kwargs)
+
+            pipe.transformer.forward = forward_wrapper
+
+            generator = torch.Generator(device=device).manual_seed(seed)
+            logging.info("Run pipeline ...")
+            pipe_kwargs = dict(
+                prompt=prompt,
+                image=image,
+                negative_prompt=negative_prompt,
+                num_inference_steps=num_steps,
+                guidance_scale=guidance,
+                generator=generator,
+            )
+            if height is not None:
+                pipe_kwargs["height"] = height
+            if width is not None:
+                pipe_kwargs["width"] = width
+
+            try:
+                output = pipe(**pipe_kwargs)
+            finally:
+                pipe.transformer.forward = orig_forward
+
+            if LAST_IMG_IDS is None:
+                logging.warning("Failed to capture img_ids; heatmaps will use heuristic reshape.")
+                coords_np = None
+            else:
+                coords_np = LAST_IMG_IDS.numpy()
+                logging.info("Captured img_ids shape %s", tuple(coords_np.shape))
+                try:
+                    np.save(os.path.join(out_dir, "img_ids.npy"), coords_np)
+                    logging.info("Saved img_ids to %s", os.path.join(out_dir, "img_ids.npy"))
+                except Exception:
+                    logging.exception("Failed to save img_ids array")
+
+            result_image = output.images[0]
+            result_path = out_dir / "gen.png"
+            result_image.save(result_path)
+            logging.info("Saved edited image to %s", result_path)
+
+            per_token_dir = out_dir / "per_token"
+            logging.info("Create per-token heatmaps...")
+            make_token_maps_from_attnlog(str(result_path), tokens, str(per_token_dir), coords=coords_np)
+
+            if save_per_layer:
+                logging.info("Create per-layer heatmaps...")
+                make_per_layer_stepavg_heatmaps(str(result_path), tokens, str(out_dir), coords=coords_np)
+
+            logging.info("Done. Outputs in %s", out_dir)
+            with (out_dir / "tokens_t5.json").open("r", encoding="utf-8") as f:
+                token_map = json.load(f)
+
+            return {
+                "exp_dir": out_dir,
+                "tokens_json": out_dir / "tokens_t5.json",
+                "tokens": token_map,
+                "per_token_dir": per_token_dir,
+                "generated_image": result_path,
+            }
+        finally:
+            if owns_worker and worker is not None:
+                worker.close()
+    finally:
+        _restore_logging(previous_handlers, previous_level)
+
+
 # ========= Main Pipeline =========
 def main():
     import argparse
 
     parser = argparse.ArgumentParser(description="Flux Kontext cross-attention visualizer")
-    parser.add_argument("--model_dir", type=str, default="/home/li325/qing_workspace/model_for_test/FLUX.1-Kontext-dev")
+    parser.add_argument("--model_dir", type=str, default="models/FLUX.1-Kontext-dev")
     parser.add_argument("--image_path", type=str, default="./wine_glass_003375.jpg")
     parser.add_argument(
         "--prompt",
         type=str,
-        #  default=(
-        #     "Maintain the original scene with the axe resting on the block, while a pair of hands firmly "
-        #     "grip the handle preparing to chop."
-        # )
-        default=(
-            "sip"
-        ),
+        default=("sip"),
     )
     parser.add_argument("--negative_prompt", type=str, default=None)
     parser.add_argument("--guidance", type=float, default=2.5)
@@ -526,109 +713,21 @@ def main():
     )
     args = parser.parse_args()
 
-    assert os.path.exists(args.image_path), f"Image not found: {args.image_path}"
-
-    set_seed(args.seed)
-
-    ts = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
-    safe_prompt = "".join(c if c.isalnum() else "_" for c in args.prompt)[:80]
-    out_dir = os.path.join(args.output_root, f"{safe_prompt}_{ts}")
-    os.makedirs(out_dir, exist_ok=True)
-
-    logging.basicConfig(
-        level=logging.INFO,
-        format="[%(asctime)s] %(message)s",
-        handlers=[
-            logging.FileHandler(os.path.join(out_dir, "log.txt"), encoding="utf-8"),
-            logging.StreamHandler(),
-        ],
-    )
-
-    logging.info("Load FluxKontextPipeline from %s", args.model_dir)
-    pipe = FluxKontextPipeline.from_pretrained(args.model_dir, torch_dtype=torch.bfloat16)
-    pipe = pipe.to(args.device)
-
-    global EXPECTED_LATENT_HW
-    EXPECTED_LATENT_HW = None
-    ATTN_LOG.clear()
-
-    image = Image.open(args.image_path).convert("RGB")
-    if args.match_input_resolution and (args.height is None or args.width is None):
-        orig_w, orig_h = image.size
-        matched_h, matched_w = pick_preferred_resolution((orig_h, orig_w))
-        args.height = matched_h
-        args.width = matched_w
-        logging.info(
-            "match_input_resolution=True -> use preferred size %dx%d (original %dx%d)",
-            matched_h,
-            matched_w,
-            orig_h,
-            orig_w,
-        )
-
-    tokens = dump_tokens_t5(pipe, args.prompt, out_dir)
-
-    attach_recorder_to_dual_blocks(pipe)
-
-    global LAST_IMG_IDS
-    LAST_IMG_IDS = None
-    orig_forward = pipe.transformer.forward
-
-    def forward_wrapper(*args, **kwargs):
-        global LAST_IMG_IDS
-        if "img_ids" in kwargs and kwargs["img_ids"] is not None:
-            LAST_IMG_IDS = kwargs["img_ids"].detach().to(torch.float32).cpu()
-        return orig_forward(*args, **kwargs)
-
-    pipe.transformer.forward = forward_wrapper
-
-    generator = torch.Generator(device=args.device).manual_seed(args.seed)
-    logging.info("Run pipeline ...")
-    pipe_kwargs = dict(
+    run_visualization(
+        model_dir=args.model_dir,
+        image_path=args.image_path,
         prompt=args.prompt,
-        image=image,
+        output_root=args.output_root,
+        guidance=args.guidance,
+        num_steps=args.num_steps,
+        seed=args.seed,
+        device=args.device,
         negative_prompt=args.negative_prompt,
-        num_inference_steps=args.num_steps,
-        guidance_scale=args.guidance,
-        generator=generator,
+        save_per_layer=args.save_per_layer,
+        height=args.height,
+        width=args.width,
+        match_input_resolution=args.match_input_resolution,
     )
-    if args.height is not None:
-        pipe_kwargs["height"] = args.height
-    if args.width is not None:
-        pipe_kwargs["width"] = args.width
-
-    try:
-        output = pipe(**pipe_kwargs)
-    finally:
-        pipe.transformer.forward = orig_forward
-
-    if LAST_IMG_IDS is None:
-        logging.warning("Failed to capture img_ids; heatmaps will use heuristic reshape.")
-        coords_np = None
-    else:
-        coords_np = LAST_IMG_IDS.numpy()
-        logging.info("Captured img_ids shape %s", tuple(coords_np.shape))
-        try:
-            np.save(os.path.join(out_dir, "img_ids.npy"), coords_np)
-            logging.info("Saved img_ids to %s", os.path.join(out_dir, "img_ids.npy"))
-        except Exception:
-            logging.exception("Failed to save img_ids array")
-
-    result_image = output.images[0]
-    result_path = os.path.join(out_dir, "gen.png")
-    result_image.save(result_path)
-    logging.info("Saved edited image to %s", result_path)
-
-    per_token_dir = os.path.join(out_dir, "per_token")
-    logging.info("Create per-token heatmaps...")
-    make_token_maps_from_attnlog(result_path, tokens, per_token_dir, coords=coords_np)
-
-    if args.save_per_layer:
-        logging.info("Create per-layer heatmaps...")
-        make_per_layer_stepavg_heatmaps(result_path, tokens, out_dir, coords=coords_np)
-
-    logging.info("Done. Outputs in %s", out_dir)
-
 
 if __name__ == "__main__":
     main()

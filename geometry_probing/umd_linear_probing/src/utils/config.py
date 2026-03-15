@@ -56,6 +56,9 @@ def _resolve_paths(config: Dict[str, Any], base_dir: Path) -> Dict[str, Any]:
         dataset_cfg["root"] = _resolve_path(base_dir, dataset_cfg["root"])
     if "split_path" in dataset_cfg:
         dataset_cfg["split_path"] = _resolve_path(base_dir, dataset_cfg["split_path"])
+    geometry_cfg = dataset_cfg.get("geometry")
+    if isinstance(geometry_cfg, dict) and "manifest_path" in geometry_cfg:
+        geometry_cfg["manifest_path"] = _resolve_path(base_dir, geometry_cfg["manifest_path"])
 
     model_cfg = config.get("model") or {}
     params = model_cfg.get("params") if isinstance(model_cfg, dict) else None
