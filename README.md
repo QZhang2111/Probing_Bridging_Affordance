@@ -215,15 +215,13 @@ python run.py fusion-eval -- --help
 If you use this repository in academic work, cite the associated paper:
 
 ```bibtex
-@misc{probing_bridging_affordance_2026,
-  title={Probing and Bridging Geometry--Interaction Cues for Affordance Reasoning in Vision Foundation Models},
-  author={Anonymous},
-  year={2026},
-  note={CVPR submission}
+@article{zhang2026probing,
+  title={Probing and Bridging Geometry-Interaction Cues for Affordance Reasoning in Vision Foundation Models},
+  author={Zhang, Qing and Li, Xuesong and Zhang, Jing},
+  journal={arXiv preprint arXiv:2602.20501},
+  year={2026}
 }
 ```
-
-Update this entry with the final author list, venue, and publication year once the paper is public.
 
 ## License
 
