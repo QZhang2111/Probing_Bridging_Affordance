@@ -22,6 +22,13 @@ Probing_Bridging_Affordance/
 └── run.py
 ```
 
+## To Do
+
+- [x] UMD linear probing
+- [x] Auxiliary analysis
+- [x] FLUX Kontext heatmap extraction
+- [ ] Zero-shot fusion evaluation
+
 ## Environment
 
 Recommended environment name:
